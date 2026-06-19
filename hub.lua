@@ -1,4 +1,4 @@
--- =============================================
+
 -- =============================================
 -- MM2 MEGA HUB | ФИНАЛЬНАЯ ВЕРСИЯ (FIX)
 -- Красивое меню + выбор цвета
@@ -10,7 +10,6 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 
 -- ===== НАСТРОЙКИ =====
 local Settings = {
@@ -29,7 +28,7 @@ local Settings = {
     Crosshair = true,
     FlySpeed = 50,
     FlyKey = Enum.KeyCode.F,
-    HubColor = Color3.fromRGB(100, 50, 200) -- Фиолетовый по умолчанию
+    HubColor = Color3.fromRGB(100, 50, 200)
 }
 
 -- ===== ПЕРЕМЕННЫЕ =====
@@ -68,7 +67,7 @@ local function GetPlayerRole(player)
     return "Innocent"
 end
 
--- ===== СОЗДАНИЕ GUI =====
+-- ===== СОЗДАНИЕ GUI (с защитой от ошибок) =====
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game:GetService("CoreGui")
 ScreenGui.ResetOnSpawn = false
@@ -247,7 +246,7 @@ Tabs["Wallhop"] = WallhopTab
 
 CreateToggle(WallhopTab, 0.02, "Wallhop", "Wallhop")
 
-local function CreateSetting(parent, y, text, settingName, min, max)
+local function CreateSetting(parent, y, text, settingName)
     local label = Instance.new("TextLabel")
     label.Parent = parent
     label.Size = UDim2.new(0.45, 0, 0, 28)
@@ -400,13 +399,11 @@ local function CreateColorButton(parent, x, y, colorData)
     btn.TextScaled = true
     btn.MouseButton1Click:Connect(function()
         Settings.HubColor = colorData.Color
-        -- Обновляем все элементы
         MainFrame.BackgroundColor3 = colorData.Color
         Title.BackgroundColor3 = colorData.Color
         for _, btn2 in pairs(TabButtons) do
             btn2.BackgroundColor3 = colorData.Color
         end
-        -- Обновляем все кнопки и лейблы в хабе (простой способ)
         for _, child in pairs(MainFrame:GetDescendants()) do
             if child:IsA("TextButton") or child:IsA("TextLabel") then
                 if child ~= Title and child ~= CloseButton then
@@ -419,14 +416,14 @@ local function CreateColorButton(parent, x, y, colorData)
     return btn
 end
 
-CreateColorButton(SettingsTab, 0.02, 0.30, Colors[1])  -- Красный
-CreateColorButton(SettingsTab, 0.24, 0.30, Colors[2])  -- Синий
-CreateColorButton(SettingsTab, 0.46, 0.30, Colors[3])  -- Зелёный
-CreateColorButton(SettingsTab, 0.68, 0.30, Colors[4])  -- Фиолетовый
-CreateColorButton(SettingsTab, 0.02, 0.42, Colors[5])  -- Розовый
-CreateColorButton(SettingsTab, 0.24, 0.42, Colors[6])  -- Оранжевый
-CreateColorButton(SettingsTab, 0.46, 0.42, Colors[7])  -- Белый
-CreateColorButton(SettingsTab, 0.68, 0.42, Colors[8])  -- Чёрный
+CreateColorButton(SettingsTab, 0.02, 0.30, Colors[1])
+CreateColorButton(SettingsTab, 0.24, 0.30, Colors[2])
+CreateColorButton(SettingsTab, 0.46, 0.30, Colors[3])
+CreateColorButton(SettingsTab, 0.68, 0.30, Colors[4])
+CreateColorButton(SettingsTab, 0.02, 0.42, Colors[5])
+CreateColorButton(SettingsTab, 0.24, 0.42, Colors[6])
+CreateColorButton(SettingsTab, 0.46, 0.42, Colors[7])
+CreateColorButton(SettingsTab, 0.68, 0.42, Colors[8])
 
 -- ===== RGB-ПРИЦЕЛ =====
 local CrosshairFrame = Instance.new("Frame")
@@ -465,8 +462,7 @@ spawn(function()
     end
 end)
 
--- ===== ОСТАЛЬНЫЕ ФУНКЦИИ =====
--- ESP
+-- ===== ESP =====
 if Settings.ESP then
     local function AddESP(player)
         if player == LocalPlayer then return end
@@ -501,7 +497,7 @@ if Settings.ESP then
     Players.PlayerAdded:Connect(AddESP)
 end
 
--- SILENT AIM
+-- ===== SILENT AIM =====
 if Settings.SilentAim then
     RunService.RenderStepped:Connect(function()
         local char = LocalPlayer.Character
@@ -531,12 +527,15 @@ if Settings.SilentAim then
         end
 
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.HumanoidRootPart.Position)
+            local cam = workspace.CurrentCamera
+            if cam then
+                cam.CFrame = CFrame.new(cam.CFrame.Position, target.Character.HumanoidRootPart.Position)
+            end
         end
     end)
 end
 
--- SPEED + JUMP
+-- ===== SPEED + JUMP =====
 local function ApplySpeedAndJump()
     local char = LocalPlayer.Character
     if not char then return end
@@ -552,7 +551,7 @@ LocalPlayer.CharacterAdded:Connect(function()
     ApplySpeedAndJump()
 end)
 
--- WALLHOP
+-- ===== WALLHOP =====
 if Settings.Wallhop then
     RunService.Heartbeat:Connect(function(delta)
         wallhopCooldown = math.max(0, wallhopCooldown - delta)
@@ -569,9 +568,12 @@ if Settings.Wallhop then
             raycastParams.FilterDescendantsInstances = {char}
             raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
 
-            local direction = (Camera.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+            local cam = workspace.CurrentCamera
+            if not cam then return end
+            
+            local direction = (cam.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
             local ray = workspace:Raycast(root.Position, direction * 5, raycastParams)
 
             if ray then
                 if wallhopJumpsLeft == 0 then
-                    wallhopJumpsLeft = Settings.WallhopCount == 0 a
+                    wallhopJumpsLeft = Settings.WallhopCount == 0 and 999 or Settings.WallhopCount
